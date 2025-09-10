@@ -33,7 +33,7 @@ class RunFLow:
         self.set_tag()
         self.set_args(design_info)
         self.set_config_script(design_info)
-        self.install_requirements()
+        #self.install_requirements()
         RunRegression(self.args, self.paths, self.logger)
 
     def configure_logger(self):
