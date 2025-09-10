@@ -8,7 +8,8 @@ from caravel_cocotb.scripts.verify_cocotb.check_git import GitRepoChecker
 import re
 import logging
 import random
-from caravel_cocotb.scripts.verify_cocotb.DockerProcess import DockerProcess
+import subprocess
+import sys
 
 
 def check_valid_mail_addr(address):
@@ -32,11 +33,7 @@ class RunFLow:
         self.set_tag()
         self.set_args(design_info)
         self.set_config_script(design_info)
-        DockerProcess(
-            "efabless/dv:cocotb",
-            self.paths.USER_PROJECT_ROOT,
-            f"{self.paths.SIM_PATH}/{self.args.tag}",
-        ).run()
+        self.install_requirements()
         RunRegression(self.args, self.paths, self.logger)
 
     def configure_logger(self):
@@ -253,6 +250,22 @@ class RunFLow:
         with open(new_config_path, "w") as file:
             yaml.dump(design_configs, file)
 
+    def install_requirements(self):
+        """Install Python requirements from requirements.txt if it exists"""
+        requirements_path = f"{self.paths.USER_PROJECT_ROOT}/verilog/dv/cocotb/requirements.txt"
+        if os.path.exists(requirements_path):
+            self.logger.info(f"Installing requirements from {requirements_path}")
+            try:
+                subprocess.run([
+                    sys.executable, "-m", "pip", "install", "-r", requirements_path
+                ], check=True, capture_output=True, text=True)
+                self.logger.info("Requirements installed successfully")
+            except subprocess.CalledProcessError as e:
+                self.logger.warning(f"Failed to install requirements: {e}")
+                self.logger.warning("Please ensure all required packages are installed manually")
+        else:
+            self.logger.info("No requirements.txt found, skipping package installation")
+
     def get_design_info(self):
         yaml_file = open(
             f"{f'{self.run_path}/design_info.yaml' if self.args.design_info is None else self.args.design_info}",
@@ -284,7 +297,6 @@ class CocotbArgs:
         verbosity="normal",
         check_commits=False,
         design_info=None,
-        no_docker=False,
         compile=False,
         run_defaults=False,
         CI=False,
@@ -317,7 +329,6 @@ class CocotbArgs:
         self.cpu_type = None  # would be filled by other class
         self.check_commits = check_commits
         self.design_info = design_info
-        self.no_docker = no_docker
         self.compile = compile
         self.run_defaults = run_defaults
         self.sdfs_dir = sdfs_dir
@@ -347,7 +358,6 @@ class CocotbArgs:
         self.verbosity = args.verbosity
         self.check_commits = args.check_commits
         self.design_info = args.design_info
-        self.no_docker = args.no_docker
         self.compile = args.compile
         self.run_defaults = args.run_defaults
         self.CI = args.CI

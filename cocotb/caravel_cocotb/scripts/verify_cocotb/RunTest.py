@@ -23,21 +23,11 @@ class RunTest:
         if not self.args.compile_only:
             self.test.end_of_test()
 
-    def docker_command_str(
-        self,
-        docker_image="efabless/dv:cocotb",
-        docker_dir="",
-        env_vars="",
-        addtional_switchs="",
-        command="",
-    ):
-        command = f"docker run {' --init -it --sig-proxy=true ' if not self.args.CI else ' ' } -u $(id -u $USER):$(id -g $USER) {addtional_switchs} {env_vars} {docker_dir} {docker_image} sh -ec '{command}'"
-        return command
 
     def hex_riscv_command_gen(self):
-        GCC_PATH = "/opt/riscv/bin/"
+        # Use system PATH to find cross-compiler tools
         GCC_PREFIX = "riscv32-unknown-elf"
-        GCC_COMPILE = f"{GCC_PATH}/{GCC_PREFIX}"
+        GCC_COMPILE = GCC_PREFIX
         SOURCE_FILES = (
             f"{self.paths.FIRMWARE_PATH}/crt0_vex.S {self.paths.FIRMWARE_PATH}/isr.c"
         )
@@ -94,16 +84,13 @@ class RunTest:
         else:
             command = self.hex_riscv_command_gen()
 
-        docker_dir = f"-v {self.hex_dir}:{self.hex_dir} -v {self.paths.RUN_PATH}:{self.paths.RUN_PATH} -v {self.paths.CARAVEL_ROOT}:{self.paths.CARAVEL_ROOT} -v {self.paths.MCW_ROOT}:{self.paths.MCW_ROOT} -v {self.test.test_dir}:{self.test.test_dir} {' '.join([f'-v {link}:{link} ' for link in self.get_ips_fw()])} "
-        docker_dir = (
-            docker_dir
-            + f"-v {self.paths.USER_PROJECT_ROOT}:{self.paths.USER_PROJECT_ROOT}"
-        )
-        docker_command = self.docker_command_str(
-            docker_image="efabless/dv:cocotb", docker_dir=docker_dir, command=command
-        )
-        # don't run with docker with arm
-        cmd = command if self.args.cpu_type == "ARM" else docker_command
+        # Run directly without Docker, assuming cross-compilation tools are installed
+        if not self.check_cross_compile_tools():
+            raise RuntimeError(
+                f"{bcolors.FAIL}Error:{bcolors.ENDC} Cross-compilation tools not found. "
+                f"Please install {'arm-none-eabi-gcc' if self.args.cpu_type == 'ARM' else 'riscv32-unknown-elf-gcc'}"
+            )
+        cmd = command
         hex_gen_state = self.run_command_write_to_file(
             cmd,
             self.test.hex_log,
@@ -203,9 +190,11 @@ class RunTest:
             f"iverilog -g2012 -Ttyp {macros} {self.iverilog_dirs} -o {self.test.compilation_dir}/sim.vvp -s caravel_top"
             f" {self.paths.CARAVEL_VERILOG_PATH}/rtl/toplevel_cocotb.v"
         )
-        docker_compilation_command = self._iverilog_docker_command_str(compile_command)
+        # Set up environment variables for direct execution
+        self.setup_environment_vars()
+        # Use direct command since Docker is not required
         self.run_command_write_to_file(
-            docker_compilation_command if not self.args.no_docker else compile_command,
+            compile_command,
             self.test.compilation_log,
             self.logger,
             quiet=False if self.args.verbosity == "debug" else True,
@@ -215,38 +204,16 @@ class RunTest:
         defines = GetDefines(self.test.includes_file)
         seed = "" if self.args.seed is None else f"RANDOM_SEED={self.args.seed}"
         run_command = f"cd {self.test.test_dir} && TESTCASE={self.test.name} MODULE=module_trail {seed} vvp -M $(cocotb-config --prefix)/cocotb/libs -m libcocotbvpi_icarus {self.test.compilation_dir}/sim.vvp +{ ' +'.join(self.test.macros) } {' '.join([f'+{k}={v}' if v != ''else f'+{k}' for k, v in defines.defines.items()])}"
-        docker_run_command = self._iverilog_docker_command_str(run_command)
+        # Set up environment variables for direct execution  
+        self.setup_environment_vars()
+        # Use direct command since Docker is not required
         self.run_command_write_to_file(
-            docker_run_command if not self.args.no_docker else run_command,
+            run_command,
             None if self.args.verbosity == "quiet" else self.test.test_log2,
             self.logger,
             quiet=True if self.args.verbosity == "quiet" else False,
         )
 
-    def _iverilog_docker_command_str(self, command=""):
-        """the docker command without the command that would run"""
-        env_vars = f"-e COCOTB_RESULTS_FILE={os.getenv('COCOTB_RESULTS_FILE')} -e CARAVEL_PATH={self.paths.CARAVEL_PATH} -e CARAVEL_VERILOG_PATH={self.paths.CARAVEL_VERILOG_PATH} -e VERILOG_PATH={self.paths.VERILOG_PATH} -e PDK_ROOT={self.paths.PDK_ROOT} -e PDK={self.paths.PDK} -e USER_PROJECT_VERILOG={self.paths.USER_PROJECT_ROOT}/verilog"
-        local_caravel_cocotb_path = caravel_cocotb.__file__.replace("__init__.py", "")
-        docker_caravel_cocotb_path = (
-            "/usr/local/lib/python3.8/dist-packages/caravel_cocotb/"
-        )
-        docker_dir = f"-v {self.paths.RUN_PATH}:{self.paths.RUN_PATH} -v {self.paths.CARAVEL_ROOT}:{self.paths.CARAVEL_ROOT} -v {self.paths.MCW_ROOT}:{self.paths.MCW_ROOT} -v {self.paths.PDK_ROOT}:{self.paths.PDK_ROOT} -v {local_caravel_cocotb_path}:{docker_caravel_cocotb_path} "
-        docker_dir += (
-            f"-v {self.paths.USER_PROJECT_ROOT}:{self.paths.USER_PROJECT_ROOT}"
-        )
-        docker_dir += " ".join([f' -v {link}:{link} ' for link in self.find_symbolic_links(self.paths.USER_PROJECT_ROOT)])
-        print(docker_dir)
-        if os.path.exists("/mnt/scratch/"):
-            docker_dir += " -v /mnt/scratch/cocotb_runs/:/mnt/scratch/cocotb_runs/ "
-        display = " -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix -v $HOME/.Xauthority:/.Xauthority --network host --security-opt seccomp=unconfined "
-        command = self.docker_command_str(
-            docker_image="efabless/dv:cocotb",
-            docker_dir=docker_dir,
-            env_vars=env_vars,
-            addtional_switchs=display,
-            command=command,
-        )
-        return command
 
     def find_symbolic_links(self, directory):
         sym_links = []
@@ -367,8 +334,8 @@ class RunTest:
                     if file is not None:
                         logger_file.info(stdout.replace("\n", "", 1))
         except Exception as e:
-            logger(f"Docker process stopped by user {e}")
-            process.stdin.write(b"\x03")  # Send the Ctrl+C signal to the Docker process
+            logger(f"Process stopped by user {e}")
+            process.stdin.write(b"\x03")  # Send the Ctrl+C signal to the process
             process.terminate()
 
         return process.returncode
@@ -404,6 +371,39 @@ class RunTest:
         with open(self.test.hash_log, "w") as f:
             f.write(new_hash)
         return new_hash
+
+    def check_cross_compile_tools(self):
+        """Check if required cross-compilation tools are available"""
+        if self.args.cpu_type == "ARM":
+            tool = "arm-none-eabi-gcc"
+        else:
+            tool = "riscv32-unknown-elf-gcc"
+        
+        try:
+            result = subprocess.run([tool, "--version"], 
+                                  capture_output=True, text=True, timeout=5)
+            return result.returncode == 0
+        except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
+            return False
+
+    def setup_environment_vars(self):
+        """Set up environment variables needed for compilation and simulation"""
+        if hasattr(self.paths, 'CARAVEL_PATH'):
+            os.environ['CARAVEL_PATH'] = self.paths.CARAVEL_PATH
+        if hasattr(self.paths, 'CARAVEL_VERILOG_PATH'):
+            os.environ['CARAVEL_VERILOG_PATH'] = self.paths.CARAVEL_VERILOG_PATH
+        if hasattr(self.paths, 'VERILOG_PATH'):
+            os.environ['VERILOG_PATH'] = self.paths.VERILOG_PATH
+        if hasattr(self.paths, 'PDK_ROOT'):
+            os.environ['PDK_ROOT'] = self.paths.PDK_ROOT
+        if hasattr(self.paths, 'PDK'):
+            os.environ['PDK'] = self.paths.PDK
+        if hasattr(self.paths, 'USER_PROJECT_ROOT'):
+            os.environ['USER_PROJECT_VERILOG'] = f"{self.paths.USER_PROJECT_ROOT}/verilog"
+        
+        # Set COCOTB_RESULTS_FILE if not already set
+        if 'COCOTB_RESULTS_FILE' not in os.environ:
+            os.environ['COCOTB_RESULTS_FILE'] = f"{self.test.test_dir}/results.xml"
 
 class bcolors:
     HEADER = "\033[95m"

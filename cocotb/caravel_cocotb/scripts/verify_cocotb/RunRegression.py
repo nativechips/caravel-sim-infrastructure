@@ -456,17 +456,14 @@ class RunRegression:
             msg["Subject"] = f"Fail: {self.args.tag} run results"
         msg["From"] = "verification@efabless.com"
         msg["To"] = ", ".join(self.args.emailto)
-        docker = False
-        if docker:
-            mail_command = f'echo "{mail_sub}" | mail -a "Content-type: text/html;" -s "{msg["Subject"]}" {self.args.emailto[0]}'
-            docker_command = f"docker run -it -u $(id -u $USER):$(id -g $USER) efabless/dv:mail sh -c '{mail_command}'"
-            print(docker_command)
-            os.system(docker_command)
-        else:
-            # Send the message via our own SMTP server.
+        # Send the message via local SMTP server
+        try:
             s = smtplib.SMTP("localhost")
             s.send_message(msg)
             s.quit()
+            self.logger.info("Email sent successfully")
+        except Exception as e:
+            self.logger.warning(f"Failed to send email: {e}")
 
     def set_html_test_table(self):
         html_test_table = "<h2>Tests Table:</h2><table border=2 bgcolor=#D6EEEE>"
