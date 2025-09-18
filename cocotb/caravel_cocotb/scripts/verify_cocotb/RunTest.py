@@ -140,17 +140,17 @@ class RunTest:
         # Check main firmware path for C files (excluding isr.c as it's already included)
         if hasattr(self.paths, 'FIRMWARE_PATH') and os.path.exists(self.paths.FIRMWARE_PATH):
             for file in os.listdir(self.paths.FIRMWARE_PATH):
-                if file.endswith('.c') and file != 'isr.c':
+                if file.endswith('.c') and file != 'isr.c' and not file.startswith('._'):
                     c_files.append(os.path.join(self.paths.FIRMWARE_PATH, file))
-        
+
         # Check firmware APIs directory
         if hasattr(self.paths, 'FIRMWARE_PATH'):
             apis_path = os.path.join(self.paths.FIRMWARE_PATH, 'APIs')
             if os.path.exists(apis_path):
                 for file in os.listdir(apis_path):
-                    if file.endswith('.c'):
+                    if file.endswith('.c') and not file.startswith('._'):
                         c_files.append(os.path.join(apis_path, file))
-        
+
         # Check IP firmware directories
         if hasattr(self.paths, 'USER_PROJECT_ROOT') and os.path.exists(f"{self.paths.USER_PROJECT_ROOT}/ip"):
             for ip_dir in os.listdir(f"{self.paths.USER_PROJECT_ROOT}/ip"):
@@ -159,7 +159,7 @@ class RunTest:
                     fw_path = os.path.join(ip_path, "fw")
                     if os.path.exists(fw_path):
                         for file in os.listdir(fw_path):
-                            if file.endswith('.c'):
+                            if file.endswith('.c') and not file.startswith('._'):
                                 c_files.append(os.path.join(fw_path, file))
         
         return c_files
