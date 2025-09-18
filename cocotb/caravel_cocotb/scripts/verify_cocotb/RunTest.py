@@ -28,9 +28,14 @@ class RunTest:
         # Use system PATH to find cross-compiler tools
         GCC_PREFIX = "riscv32-unknown-elf"
         GCC_COMPILE = GCC_PREFIX
+        
+        # Get additional firmware C files
+        additional_c_files = self.get_firmware_c_files()
+        additional_files_str = " ".join(additional_c_files) if additional_c_files else ""
+        
         SOURCE_FILES = (
-            f"{self.paths.FIRMWARE_PATH}/crt0_vex.S {self.paths.FIRMWARE_PATH}/isr.c"
-        )
+            f"{self.paths.FIRMWARE_PATH}/crt0_vex.S {self.paths.FIRMWARE_PATH}/isr.c {additional_files_str}"
+        ).strip()
 
         LINKER_SCRIPT = f"-Wl,-Bstatic,-T,{self.test.linker_script_file},--strip-debug "
         CPUFLAGS = "-O2 -g -march=rv32i_zicsr -mabi=ilp32 -D__vexriscv__ -ffreestanding -nostdlib"
@@ -127,6 +132,37 @@ class RunTest:
         # send it as string
         # ips_fw = f"{flag_type}" + f" {flag_type}".join(fw_list)
         return fw_list
+
+    def get_firmware_c_files(self):
+        """Find all firmware C files in the firmware path and IP directories"""
+        c_files = []
+        
+        # Check main firmware path for C files (excluding isr.c as it's already included)
+        if hasattr(self.paths, 'FIRMWARE_PATH') and os.path.exists(self.paths.FIRMWARE_PATH):
+            for file in os.listdir(self.paths.FIRMWARE_PATH):
+                if file.endswith('.c') and file != 'isr.c':
+                    c_files.append(os.path.join(self.paths.FIRMWARE_PATH, file))
+        
+        # Check firmware APIs directory
+        if hasattr(self.paths, 'FIRMWARE_PATH'):
+            apis_path = os.path.join(self.paths.FIRMWARE_PATH, 'APIs')
+            if os.path.exists(apis_path):
+                for file in os.listdir(apis_path):
+                    if file.endswith('.c'):
+                        c_files.append(os.path.join(apis_path, file))
+        
+        # Check IP firmware directories
+        if hasattr(self.paths, 'USER_PROJECT_ROOT') and os.path.exists(f"{self.paths.USER_PROJECT_ROOT}/ip"):
+            for ip_dir in os.listdir(f"{self.paths.USER_PROJECT_ROOT}/ip"):
+                ip_path = f"{self.paths.USER_PROJECT_ROOT}/ip/{ip_dir}"
+                if os.path.isdir(ip_path):
+                    fw_path = os.path.join(ip_path, "fw")
+                    if os.path.exists(fw_path):
+                        for file in os.listdir(fw_path):
+                            if file.endswith('.c'):
+                                c_files.append(os.path.join(fw_path, file))
+        
+        return c_files
 
     def test_path(self, test_name=None):
         if test_name is None:
