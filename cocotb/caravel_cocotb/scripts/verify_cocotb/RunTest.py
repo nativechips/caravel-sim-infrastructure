@@ -40,17 +40,17 @@ class RunTest:
         LINKER_SCRIPT = f"-Wl,-Bstatic,-T,{self.test.linker_script_file},--strip-debug "
         CPUFLAGS = "-O2 -g -march=rv32i_zicsr -mabi=ilp32 -D__vexriscv__ -ffreestanding -nostdlib"
         # CPUFLAGS = "-O2 -g -march=rv32imc_zicsr -mabi=ilp32 -D__vexriscv__ -ffreestanding -nostdlib"
-        includes = [
-            f"-I{ip}" for ip in self.get_ips_fw()
-        ] + [
-            f"-I{self.paths.FIRMWARE_PATH}",
-            f"-I{self.paths.FIRMWARE_PATH}/APIs",
-            f"-I{self.paths.USER_PROJECT_ROOT}/verilog/dv/cocotb",
-            f"-I{self.paths.VERILOG_PATH}/dv/generated",
-            f"-I{self.paths.VERILOG_PATH}/dv/",
-            f"-I{self.paths.VERILOG_PATH}/common/",
-        ]
-        includes = f" -I{self.paths.FIRMWARE_PATH} -I{self.paths.FIRMWARE_PATH}/APIs -I{self.paths.VERILOG_PATH}/dv/generated  -I{self.paths.VERILOG_PATH}/dv/ -I{self.paths.VERILOG_PATH}/common"
+        #includes = [
+        #    f"-I{ip}" for ip in self.get_ips_fw()
+        #] + [
+        #    f"-I{self.paths.FIRMWARE_PATH}",
+        #    f"-I{self.paths.FIRMWARE_PATH}/APIs",
+        #    f"-I{self.paths.USER_PROJECT_ROOT}/verilog/dv/cocotb",
+        #    f"-I{self.paths.VERILOG_PATH}/dv/generated",
+        #    f"-I{self.paths.VERILOG_PATH}/dv/",
+        #    f"-I{self.paths.VERILOG_PATH}/common/",
+        #]
+        includes = f" -I{self.paths.FIRMWARE_PATH} -I{self.paths.FIRMWARE_PATH}/APIs -I{self.paths.VERILOG_PATH}/dv/generated  -I{self.paths.VERILOG_PATH}/dv/ -I{self.paths.VERILOG_PATH}/common -I{self.paths.FIRMWARE_PATH}/hw"
         includes += f" -I{self.paths.USER_PROJECT_ROOT}/verilog/dv/cocotb {' '.join([f'-I{ip}' for ip in self.get_ips_fw()])}"
         elf_command = (
             f"{GCC_COMPILE}-gcc  {includes} {CPUFLAGS} {LINKER_SCRIPT}"
