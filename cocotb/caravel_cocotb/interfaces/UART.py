@@ -6,17 +6,31 @@ from caravel_cocotb.interfaces.caravel import Caravel_env
 class UART:
     """UART Verification environment to provide APIs to communicate with caravel UART through caravel gpios
 
-    :param Caravel_env caravelEnv: caravel environment"""
+    :param Caravel_env caravelEnv: caravel environment
+    :param dict uart_pins: mapping for TX/RX GPIO indices
+    :param int baud_rate: UART line rate in bits-per-second"""
 
-    def __init__(self, caravelEnv: Caravel_env, uart_pins={"tx": 6, "rx": 5}) -> None:
+    def __init__(
+        self,
+        caravelEnv: Caravel_env,
+        uart_pins=None,
+        baud_rate: int = 38400,
+    ) -> None:
         self.caravelEnv = caravelEnv
         clock = caravelEnv.get_clock_obj()
         self.period = clock.period / 1000
-        self.bit_time_ns = round(
-            1.01 * 10**5 * self.period / (96)
-        )  # 10% factor of safety
-        cocotb.log.info(f"[UART] configure UART bit_time_ns = {self.bit_time_ns}ns")
-        self.uart_pins = uart_pins
+        self.baud_rate = baud_rate
+        if self.baud_rate <= 0:
+            raise ValueError("baud_rate must be positive")
+        safety_factor = 1.1  # Provide margin to sample around the bit center
+        raw_bit_period = safety_factor * (1_000_000_000 / self.baud_rate)
+        self.bit_period_ns = max(2, round(raw_bit_period))
+        cocotb.log.info(
+            f"[UART] configure UART baud_rate = {self.baud_rate}bps, bit_period_ns = {self.bit_period_ns}ns"
+        )
+        if uart_pins is None:
+            uart_pins = {"tx": 6, "rx": 5}
+        self.uart_pins = dict(uart_pins)
 
     async def get_line(self):
         """Read line sent through UART (msg is sent by the software)
@@ -31,7 +45,7 @@ class UART:
             line += new_char
             cocotb.log.debug(f"[UART] part of the line recieved = {line}")
         cocotb.log.info(f"[UART] line recieved = {line}")
-        return line[0:-1]
+        return line
 
     async def get_int(self) -> int:
         """read int sent by firmware API uart_put_int"""
@@ -55,7 +69,7 @@ class UART:
         char = ""
         for i in range(8):
             char = self.caravelEnv.monitor_gpio(self.uart_pins["tx"]).binstr + char
-            await Timer(self.bit_time_ns, units="ns")
+            await Timer(self.bit_period_ns, units="ns")
         return chr(int(char, 2))
 
     async def start_of_tx(self):
@@ -71,9 +85,9 @@ class UART:
                 == 1
             ):
                 continue  # to skip latches
-            await Timer(self.bit_time_ns - 2, units="ns")
+            await Timer(self.bit_period_ns - 2, units="ns")
             await Timer(
-                int(self.bit_time_ns / 2), units="ns"
+                int(self.bit_period_ns / 2), units="ns"
             )  # read the bit from the middle
             break
 
@@ -92,22 +106,22 @@ class UART:
             )  # there is state 1 which takes 11975 ns and this time isn't in ARM only
         cocotb.log.info(f"[TEST] extra_time = {extra_time}ns")
 
-        await Timer(self.bit_time_ns + extra_time, units="ns")
+        await Timer(self.bit_period_ns + extra_time, units="ns")
         # send bits
         for i in reversed(range(8)):
             self.caravelEnv.drive_gpio_in(self.uart_pins["rx"], char_bits[i])
-            await Timer(self.bit_time_ns, units="ns")
+            await Timer(self.bit_period_ns, units="ns")
             await NextTimeStep()
 
         # stop of frame
         self.caravelEnv.drive_gpio_in(self.uart_pins["rx"], 1)
-        await Timer(self.bit_time_ns, units="ns")
-        await Timer(self.bit_time_ns, units="ns")
+        await Timer(self.bit_period_ns, units="ns")
+        await Timer(self.bit_period_ns, units="ns")
         # insert 4 bit delay just for debugging
-        await Timer(self.bit_time_ns, units="ns")
-        await Timer(self.bit_time_ns, units="ns")
-        await Timer(self.bit_time_ns, units="ns")
-        await Timer(self.bit_time_ns, units="ns")
+        await Timer(self.bit_period_ns, units="ns")
+        await Timer(self.bit_period_ns, units="ns")
+        await Timer(self.bit_period_ns, units="ns")
+        await Timer(self.bit_period_ns, units="ns")
 
     async def uart_send_line(self, line):
         """Send line to UART (msg is sent to the software)
