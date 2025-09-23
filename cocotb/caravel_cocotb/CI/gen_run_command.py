@@ -75,7 +75,7 @@ class GenRunCommand(BaseClass):
             "USER_PROJECT_ROOT": self.paths.user_project_root,
             "PDK_ROOT": self.paths.pdk_root,
             "PDK": "sky130A",
-            "clk": 25,
+            "clk_period_ns": 25,
             "caravan": False,
             "emailto": [None],
         }

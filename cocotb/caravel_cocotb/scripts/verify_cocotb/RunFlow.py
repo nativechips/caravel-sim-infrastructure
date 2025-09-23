@@ -183,7 +183,7 @@ class RunFLow:
 
     def set_args(self, design_info):
         if self.args.clk is None:
-            self.args.clk = design_info["clk"]
+            self.args.clk = design_info["clk_period_ns"]
         else:
             self.args.clk = int(self.args.clk)
 

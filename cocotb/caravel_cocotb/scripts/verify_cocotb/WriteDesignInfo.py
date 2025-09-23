@@ -25,8 +25,8 @@ PDK_ROOT: "/home/rady/caravel/files4vcs/pdk"
 PDK: sky130A
 #PDK: gf180mcuC
 
-#clock in ns
-clk: 25
+#clock period in ns
+clk_period_ns: 25
 
 # true when caravan are simulated instead of caravel
 caravan: false
@@ -44,15 +44,19 @@ class WriteDesignInfo:
         self,
         cocotb_path,
         env_paths: EnvironmentPaths,
-        clk=25,
+        clk_period_ns=25,
         is_caravan=False,
         Emailto=None,
     ) -> None:
-        self.update_yaml_args(env_paths, clk, is_caravan, Emailto)
+        self.update_yaml_args(env_paths, clk_period_ns, is_caravan, Emailto)
         self.write_yaml_f(cocotb_path)
 
     def update_yaml_args(
-        self, env_paths: EnvironmentPaths, clk, is_caravan=False, Emailto=None
+        self,
+        env_paths: EnvironmentPaths,
+        clk_period_ns,
+        is_caravan=False,
+        Emailto=None,
     ):
         self.yaml = ruamel.yaml.YAML()  # defaults to round-trip if no parameters given
         self.code = self.yaml.load(yaml_str)
@@ -61,7 +65,7 @@ class WriteDesignInfo:
         self.code["USER_PROJECT_ROOT"] = env_paths.USER_PROJECT_ROOT
         self.code["PDK"] = env_paths.PDK
         self.code["PDK_ROOT"] = env_paths.PDK_ROOT
-        self.code["clk"] = clk
+        self.code["clk_period_ns"] = clk_period_ns
         self.code["caravan"] = is_caravan
         self.code["emailto"] = [None] if Emailto is None else Emailto
 

@@ -100,7 +100,7 @@ class Checker(BaseClass):
         pdk_root_exp = design_info.get("PDK_ROOT") + "/" + design_info.get("PDK")
         pdk_exp = design_info.get("PDK")[:-1]
         clk_exp = (
-            self.command.clk if self.command.clk is not None else design_info.get("clk")
+            self.command.clk if self.command.clk is not None else design_info.get("clk_period_ns")
         )
         max_err_exp = (
             int(self.command.max_error) if self.command.max_error is not None else 3
