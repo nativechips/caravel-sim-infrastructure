@@ -19,15 +19,8 @@ class UART:
         self.caravelEnv = caravelEnv
         clock = caravelEnv.get_clock_obj()
         self.period = clock.period / 1000
+        self._baud_rate = None
         self.baud_rate = baud_rate
-        if self.baud_rate <= 0:
-            raise ValueError("baud_rate must be positive")
-        safety_factor = 1.1  # Provide margin to sample around the bit center
-        raw_bit_period = safety_factor * (1_000_000_000 / self.baud_rate)
-        self.bit_period_ns = max(2, round(raw_bit_period))
-        cocotb.log.info(
-            f"[UART] configure UART baud_rate = {self.baud_rate}bps, bit_period_ns = {self.bit_period_ns}ns"
-        )
         if uart_pins is None:
             uart_pins = {"tx": 6, "rx": 5}
         self.uart_pins = dict(uart_pins)
@@ -133,3 +126,24 @@ class UART:
 
         # end of line \n
         await self.uart_send_char("\n")
+
+    @property
+    def baud_rate(self) -> int:
+        return self._baud_rate
+
+    @baud_rate.setter
+    def baud_rate(self, value: int) -> None:
+        if value is None:
+            raise TypeError("baud_rate must not be None")
+        if value <= 0:
+            raise ValueError("baud_rate must be positive")
+        self._baud_rate = value
+        self.bit_period_ns = self._calculate_bit_period_ns(value)
+        cocotb.log.info(
+            f"[UART] configure UART baud_rate = {self._baud_rate}bps, bit_period_ns = {self.bit_period_ns}ns"
+        )
+
+    def _calculate_bit_period_ns(self, baud_rate: int) -> int:
+        safety_factor = 1.1  # Provide margin to sample around the bit center
+        raw_bit_period = safety_factor * (1_000_000_000 / baud_rate)
+        return max(2, round(raw_bit_period))
