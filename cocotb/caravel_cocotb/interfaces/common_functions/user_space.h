@@ -38,8 +38,8 @@ void User_enableIF(){
     <tr><td>0xC<td>3<td style="background-color:#EDBB99">12<td style="background-color:#EDBB99">13<td style="background-color:#EDBB99">14<td style="background-color:#EDBB99">15   </table>
 
  */
-void USER_writeWord(unsigned int data,int offset){
-    *(((unsigned int *) USER_SPACE_ADDR)+offset) = data;
+void USER_writeWord(volatile int data,int offset){
+    *(((volatile int *) USER_SPACE_ADDR)+offset) = data;
 
 }
 /**
@@ -60,8 +60,8 @@ void USER_writeWord(unsigned int data,int offset){
     <tr><td>0xC<td>3<td style="background-color:#EDBB99">12<td style="background-color:#EDBB99">13<td style="background-color:#EDBB99">14<td style="background-color:#EDBB99">15   </table>
 
  */
-unsigned int USER_readWord(int offset){
-    return *(((unsigned int *) USER_SPACE_ADDR)+offset);
+volatile int USER_readWord(int offset){
+    return *(((volatile int *) USER_SPACE_ADDR)+offset);
 }
 /**
  * Write half word (2 bytes) at user address space 32 bit register
@@ -84,9 +84,9 @@ unsigned int USER_readWord(int offset){
     <tr><td>0xC<td>3<td style="background-color:#FAD7A0">12<td style="background-color:#FAD7A0">13<td style="background-color:#EDBB99">14<td style="background-color:#EDBB99">15   </table>
 
  */
-void USER_writeHalfWord(unsigned short data,unsigned int offset,bool is_first_word){
-    unsigned int half_word_offset = offset *2 + is_first_word;
-    *(((unsigned int *) USER_SPACE_ADDR)+half_word_offset) = data;
+void USER_writeHalfWord(volatile short data,volatile int offset,bool is_first_word){
+    volatile int half_word_offset = offset *2 + is_first_word;
+    *(((volatile int *) USER_SPACE_ADDR)+half_word_offset) = data;
     
 }
 /**
@@ -109,9 +109,9 @@ void USER_writeHalfWord(unsigned short data,unsigned int offset,bool is_first_wo
     <tr><td>0xC<td>3<td style="background-color:#FAD7A0">12<td style="background-color:#FAD7A0">13<td style="background-color:#EDBB99">14<td style="background-color:#EDBB99">15   </table>
 
  */
-unsigned short USER_readHalfWord(unsigned int offset,bool is_first_word){
-    unsigned int half_word_offset = offset *2 + is_first_word;
-    return *(((unsigned int *) USER_SPACE_ADDR)+half_word_offset);
+volatile short USER_readHalfWord(volatile int offset,bool is_first_word){
+    volatile int half_word_offset = offset *2 + is_first_word;
+    return *(((volatile int *) USER_SPACE_ADDR)+half_word_offset);
 }
 /**
  * Write byte  at user address space 32 bit register
@@ -134,11 +134,11 @@ unsigned short USER_readHalfWord(unsigned int offset,bool is_first_word){
     <tr><td>0xC<td>3<td style="background-color:#FED64E">12<td style="background-color:#EDBB99">13<td style="background-color:#FEF5E7">14<td style="background-color:#FAD7A0">15   </table>
 
  */
-void USER_writeByte(unsigned char data,unsigned int offset,unsigned char byte_num){
+void USER_writeByte(volatile char data,volatile int offset,volatile char byte_num){
     if (byte_num > 3) 
         byte_num =0; 
-    unsigned int byte_offset = offset *4 + byte_num;
-    *(((unsigned int *) USER_SPACE_ADDR)+byte_offset) = data;
+    volatile int byte_offset = offset *4 + byte_num;
+    *(((volatile int *) USER_SPACE_ADDR)+byte_offset) = data;
 }
 /**
  * Read byte  at user address space 32 bit register
@@ -160,11 +160,11 @@ void USER_writeByte(unsigned char data,unsigned int offset,unsigned char byte_nu
     <tr><td>0xC<td>3<td style="background-color:#FED64E">12<td style="background-color:#EDBB99">13<td style="background-color:#FEF5E7">14<td style="background-color:#FAD7A0">15   </table>
 
  */
-unsigned char USER_readByte( unsigned int offset,unsigned char byte_num){
+volatile char USER_readByte( volatile int offset,volatile char byte_num){
     if (byte_num > 3) 
         byte_num =0; 
-    unsigned int byte_offset = offset *4 + byte_num;
-    return *(((unsigned int *) USER_SPACE_ADDR)+byte_offset);
+    volatile int byte_offset = offset *4 + byte_num;
+    return *(((volatile int *) USER_SPACE_ADDR)+byte_offset);
 }
 
 #endif // USER_ADDR_SPACE_C_HEADER_FILE
