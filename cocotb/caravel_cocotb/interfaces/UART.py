@@ -144,6 +144,6 @@ class UART:
         )
 
     def _calculate_bit_period_ns(self, baud_rate: int) -> int:
-        safety_factor = 1.1  # Provide margin to sample around the bit center
+        safety_factor = 1.01  # Provide margin to sample around the bit center
         raw_bit_period = safety_factor * (1_000_000_000 / baud_rate)
         return max(2, round(raw_bit_period))
