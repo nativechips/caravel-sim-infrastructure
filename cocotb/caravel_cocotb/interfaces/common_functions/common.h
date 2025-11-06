@@ -25,14 +25,6 @@
 #include <spi_master.h>
 #include <user_space.h>
 
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-void enable_debug(){
-    User_enableIF();
-    set_debug_reg1(0);
-    set_debug_reg2(0);
-    
-}
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
 /**
  * Enable or disable the housekeeping SPI 
  * This function writes to the housekeeping disenable register inside the housekeeping
@@ -45,15 +37,6 @@ void enable_debug(){
  * @param is_enable when 1 (true) housekeeping is active, 0 (false) housekeeping is disabled
  */
 void enableHkSpi(bool is_enable){reg_hkspi_disable = !is_enable;}
-// debug regs
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-void set_debug_reg1(unsigned int data){reg_debug_1 = data;}
-void set_debug_reg2(unsigned int data){reg_debug_2 = data;}
-unsigned int get_debug_reg1(){return reg_debug_1;}
-unsigned int get_debug_reg2(){return reg_debug_2;}
-void wait_debug_reg1(unsigned int data){while (get_debug_reg1() != data);}
-void wait_debug_reg2(unsigned int data){while (get_debug_reg2() != data);}
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 // user project registers
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
