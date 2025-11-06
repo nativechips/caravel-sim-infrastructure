@@ -38,6 +38,25 @@
  */
 void enableHkSpi(bool is_enable){reg_hkspi_disable = !is_enable;}
 
+// vgpio
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+#define VGPIO_REG_ADDR 0x30FFFFFC
+static inline void vgpio_write_output(uint16_t value) {
+    volatile uint32_t *vgpio = (volatile uint32_t *)VGPIO_REG_ADDR;
+    uint32_t reg = *vgpio;
+    reg = (reg & 0xFFFF0000) | (value & 0xFFFF);
+    *vgpio = reg;
+}
+static inline uint16_t vgpio_read_input(void) {
+    volatile uint32_t *vgpio = (volatile uint32_t *)VGPIO_REG_ADDR;
+    uint32_t reg = *vgpio;
+    return (uint16_t)((reg >> 16) & 0xFFFF);
+}
+static inline void vgpio_wait_val(uint16_t val) {
+    while (vgpio_read_input() != val) { /* spin */ }
+}
+#endif /* DOXYGEN_SHOULD_SKIP_THIS */
+
 // user project registers
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 #ifndef ARM
