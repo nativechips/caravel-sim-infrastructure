@@ -71,6 +71,16 @@ class VirtualGPIOModel:
                 break
             await RisingEdge(self.clk)
 
+
+    async def wait_for_change(self):
+        """Wait until the output value changes from current value"""
+        current_val = self.get_output()
+        while True:
+            if self.get_output() != current_val:
+                break
+            await RisingEdge(self.clk)
+
+
     def set_input(self, value):
         self.gpio_input = value & 0xFFFF
         self.dut._log.info(f"[VirtualGPIOModel] Testbench set INPUT[31:16] to: 0x{self.gpio_input:04x}")
