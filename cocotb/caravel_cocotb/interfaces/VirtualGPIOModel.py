@@ -41,14 +41,14 @@ class VirtualGPIOModel:
                         else:
                             continue
                     except (ValueError, TypeError, AttributeError):
-                        self.dut._log.warning(f"[GPIO MODEL] invalid data {self.dut.uut.chip_core.mprj.wbs_dat_i.value} to write to")
+                        self.dut._log.warning(f"[VirtualGPIOModel] invalid data {self.dut.uut.chip_core.mprj.wbs_dat_i.value} to write to")
                         continue
                     self.gpio_output = dat_i & 0xFFFF
-                    self.dut._log.debug(f"[GPIO MODEL] Write OUTPUT[15:0]: 0x{self.gpio_output:04x}")
+                    self.dut._log.debug(f"[VirtualGPIOModel] Write OUTPUT[15:0]: 0x{self.gpio_output:04x}")
                     if (self.gpio_output == self.error_code):
-                        cocotb.log.error(f"[GPIO MODEL] received wrong code 0x{self.gpio_output:04x} at virtual gpio")
+                        cocotb.log.error(f"[VirtualGPIOModel] received wrong code 0x{self.gpio_output:04x} at virtual gpio")
                 else:
-                    self.dut._log.debug(f"[GPIO MODEL] Read: OUTPUT[15:0]=0x{self.gpio_output:04x}, INPUT[31:16]=0x{self.gpio_input:04x}")
+                    self.dut._log.debug(f"[VirtualGPIOModel] Read: OUTPUT[15:0]=0x{self.gpio_output:04x}, INPUT[31:16]=0x{self.gpio_input:04x}")
 
                 await RisingEdge(self.clk)
                 self.dut.uut.chip_core.mprj.wbs_ack_o.value = 1
@@ -75,4 +75,4 @@ class VirtualGPIOModel:
 
     def set_input(self, value):
         self.gpio_input = value & 0xFFFF
-        self.dut._log.info(f"[GPIO MODEL] Testbench set INPUT[31:16] to: 0x{self.gpio_input:04x}")
+        self.dut._log.info(f"[VirtualGPIOModel] Testbench set INPUT[31:16] to: 0x{self.gpio_input:04x}")
