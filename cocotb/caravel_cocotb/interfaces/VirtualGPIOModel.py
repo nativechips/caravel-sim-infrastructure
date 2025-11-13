@@ -1,6 +1,5 @@
 import cocotb
-from cocotb.triggers import Timer, FallingEdge, NextTimeStep, RisingEdge, ReadOnly
-from caravel_cocotb.interfaces.caravel import Caravel_env
+from cocotb.triggers import RisingEdge, ReadOnly
 
 class VirtualGPIOModel:
     def __init__(self, caravel):
@@ -11,12 +10,13 @@ class VirtualGPIOModel:
         self.gpio_input = 0x0000
         self.gpio_address = 0x30FFFFFC
         self.monitor_task = None
-        self.dut._log.info(f"[VirtualGPIOModel] initialized with address: 0x{self.gpio_address:08x}")
-        self.dut._log.info(f"[VirtualGPIOModel] Bits [15:0]  = OUTPUT from Caravel (CPU writes)")
-        self.dut._log.info(f"[VirtualGPIOModel] Bits [31:16] = INPUT to Caravel (CPU reads)")
+        self.dut._log.info(f"VirtualGPIOModel initialized with address: 0x{self.gpio_address:08x}")
+        self.dut._log.info(f"  Bits [15:0]  = OUTPUT from Caravel (CPU writes)")
+        self.dut._log.info(f"  Bits [31:16] = INPUT to Caravel (CPU reads)")
+        self.error_code = 0xEEEE
 
     async def start_monitoring(self):
-        self.dut._log.info("[VirtualGPIOModel] Starting Wishbone interface monitoring...")
+        self.dut._log.info("Starting Wishbone interface monitoring...")
 
         while True:
             await RisingEdge(self.clk)
@@ -41,12 +41,14 @@ class VirtualGPIOModel:
                         else:
                             continue
                     except (ValueError, TypeError, AttributeError):
-                        self.dut._log.warning(f"[VirtualGPIOModel] invalid data {self.dut.uut.chip_core.mprj.wbs_dat_i.value} to write to")
+                        self.dut._log.warning(f"[GPIO MODEL] invalid data {self.dut.uut.chip_core.mprj.wbs_dat_i.value} to write to")
                         continue
                     self.gpio_output = dat_i & 0xFFFF
-                    self.dut._log.info(f"[VirtualGPIOModel] Write OUTPUT[15:0]: 0x{self.gpio_output:04x}")
+                    self.dut._log.debug(f"[GPIO MODEL] Write OUTPUT[15:0]: 0x{self.gpio_output:04x}")
+                    if (self.gpio_output == self.error_code):
+                        cocotb.log.error(f"[GPIO MODEL] received wrong code 0x{self.gpio_output:04x} at virtual gpio")
                 else:
-                    self.dut._log.info(f"[VirtualGPIOModel] Read: OUTPUT[15:0]=0x{self.gpio_output:04x}, INPUT[31:16]=0x{self.gpio_input:04x}")
+                    self.dut._log.debug(f"[GPIO MODEL] Read: OUTPUT[15:0]=0x{self.gpio_output:04x}, INPUT[31:16]=0x{self.gpio_input:04x}")
 
                 await RisingEdge(self.clk)
                 self.dut.uut.chip_core.mprj.wbs_ack_o.value = 1
@@ -71,16 +73,6 @@ class VirtualGPIOModel:
                 break
             await RisingEdge(self.clk)
 
-
-    async def wait_for_change(self):
-        """Wait until the output value changes from current value"""
-        current_val = self.get_output()
-        while True:
-            if self.get_output() != current_val:
-                break
-            await RisingEdge(self.clk)
-
-
     def set_input(self, value):
         self.gpio_input = value & 0xFFFF
-        self.dut._log.info(f"[VirtualGPIOModel] Testbench set INPUT[31:16] to: 0x{self.gpio_input:04x}")
+        self.dut._log.info(f"[GPIO MODEL] Testbench set INPUT[31:16] to: 0x{self.gpio_input:04x}")
