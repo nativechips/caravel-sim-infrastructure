@@ -46,7 +46,7 @@ class VirtualGPIOModel:
                     self.gpio_output = dat_i & 0xFFFF
                     self.dut._log.debug(f"[VirtualGPIOModel] Write OUTPUT[15:0]: 0x{self.gpio_output:04x}")
                     if (self.gpio_output == self.error_code):
-                        cocotb.log.error(f"[VirtualGPIOModel] received wrong code 0x{self.gpio_output:04x} at virtual gpio")
+                        cocotb.log.fatal(f"[VirtualGPIOModel] received wrong code 0x{self.gpio_output:04x} at virtual gpio")
                 else:
                     self.dut._log.debug(f"[VirtualGPIOModel] Read: OUTPUT[15:0]=0x{self.gpio_output:04x}, INPUT[31:16]=0x{self.gpio_input:04x}")
 
