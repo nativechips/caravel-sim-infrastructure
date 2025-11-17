@@ -41,6 +41,8 @@ void enableHkSpi(bool is_enable){reg_hkspi_disable = !is_enable;}
 // vgpio
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 #define VGPIO_REG_ADDR 0x30FFFFFC
+#define VGPIO_ERROR_CODE 0xFFFF
+
 static inline void vgpio_write_output(uint16_t value) {
     volatile uint32_t *vgpio = (volatile uint32_t *)VGPIO_REG_ADDR;
     uint32_t reg = *vgpio;
